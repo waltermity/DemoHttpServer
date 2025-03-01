@@ -1,0 +1,51 @@
+name: End-to-End Test
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13' 
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt 
+
+      - name: Start the server
+        run: |
+          python server.py -s &  # Start the server in the background
+          echo "Server started"
+
+      - name: Wait for server to be ready
+        run: sleep 5 
+
+      - name: Send GET request and check response
+        id: check_response
+        run: |
+          response=$(curl -s http://localhost:5000)
+          echo "Response: $response"
+          if [ "$response" == "Hello there!" ]; then
+            echo "The value received is correct"
+            echo "::set-output name=status::success"
+          else
+            echo "Received value is incorrect"
+            echo "::set-output name=status::failure"
+            exit 1
+          fi
+
+      - name: Output result
+        run: |
+          if [ "${{ steps.check_response.outputs.status }}" == "success" ]; then
+            echo "The value received is correct"
+          else
+            echo "Received value is incorrect"
+          fi
