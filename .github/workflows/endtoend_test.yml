@@ -22,30 +22,22 @@ jobs:
 
       - name: Start the server
         run: |
-          python server.py -s &  # Start the server in the background
+          python server.py -s & 
           echo "Server started"
 
       - name: Wait for server to be ready
         run: sleep 5 
 
-      - name: Send GET request and check response
-        id: check_response
+      - name: Send GET request 
         run: |
           response=$(curl -s http://localhost:5000)
           echo "Response: $response"
-          if [ "$response" == "Hello there!" ]; then
-            echo "The value received is correct"
-            echo "::set-output name=status::success"
-          else
-            echo "Received value is incorrect"
-            echo "::set-output name=status::failure"
-            exit 1
-          fi
 
       - name: Output result
         run: |
-          if [ "${{ steps.check_response.outputs.status }}" == "success" ]; then
+          if [ "$response" == "Hello there!" ]; then
             echo "The value received is correct"
           else
             echo "Received value is incorrect"
+            exit 1
           fi
