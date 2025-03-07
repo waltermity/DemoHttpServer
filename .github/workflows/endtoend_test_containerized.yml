@@ -39,9 +39,18 @@ jobs:
             echo "Started cloud-provider-kind"
             sleep 10
             
+      - name: Find port mapping for service
+        run: |
+              echo "Checking Docker containers for port mappings..."
+              docker ps
+              
+              HOST_PORT=$(docker ps --format '{{.Ports}}' | grep -o '[0-9]\+->5000/tcp' | cut -d':' -f2 | cut -d'-' -f1 || echo "")
+            
+              echo "SERVICE_URL=http://localhost:$HOST_PORT" >> $GITHUB_ENV
+
       - name: Send GET request and check response
         run: |
-          response=$(curl -s http://localhost:57143)
+          response=$(curl -s ${{ env.SERVICE_URL }})
           echo "Response: $response"
           
           if [ "$response" == "Hello there!" ]; then
