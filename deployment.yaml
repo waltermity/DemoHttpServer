@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-http-server
+  labels:
+    app: demo-http-server
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: demo-http-server
+  template:
+    metadata:
+      labels:
+        app: demo-http-server
+    spec:
+      containers:
+      - name: demo-http-server
+        image: waltermity/demohttpserver
+        ports:
+        - containerPort: 5000
+        resources:
+          limits:
+            cpu: "0.5"
+            memory: "256Mi"
+          requests:
+            cpu: "0.2"
+            memory: "128Mi"
