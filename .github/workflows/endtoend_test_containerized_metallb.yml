@@ -67,6 +67,7 @@ jobs:
           else
             echo "Service has external IP: $EXTERNAL_IP"
             echo "SERVICE_URL=http://${EXTERNAL_IP}:5000" >> $GITHUB_ENV
+            kubectl get svc -A -owide
           fi
 
       - name: Send GET request and check response
