@@ -68,14 +68,11 @@ jobs:
             timeout 10s curl -v $EXTERNAL_IP:5000 || echo "Direct connection failed, checking network"
             
             # Route to the external IP through Kind network
-            sudo ip route add ${EXTERNAL_IP}/32 via $(docker network inspect kind -f '{{range .IPAM.Config}}{{.Gateway}}{{end}}')
+            # sudo ip route add ${EXTERNAL_IP}/32 via $(docker network inspect kind -f '{{range .IPAM.Config}}{{.Gateway}}{{end}}')
             
-            echo "Added route to $EXTERNAL_IP through Kind network gateway"
-            echo "Testing connectivity to $EXTERNAL_IP:5000 again after route addition"
-            curl -v $EXTERNAL_IP:5000 || echo "Connection still failed"
-
-            kubectl get svc -A -owide
-            kubectl describe svc demo-http-server-service
+            # echo "Added route to $EXTERNAL_IP through Kind network gateway"
+            # echo "Testing connectivity to $EXTERNAL_IP:5000 again after route addition"
+            # curl -v $EXTERNAL_IP:5000 || echo "Connection still failed"
           fi
 
       - name: Send GET request and check response
