@@ -29,7 +29,7 @@ jobs:
         run: |
             kubectl apply -f deployment.yaml
             kubectl apply -f service.yaml
-            cloud-provider-kind
+            timeout 40s cloud-provider-kind || true
 
       - name: Wait for server to be ready
         run: | 
