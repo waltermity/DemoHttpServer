@@ -22,34 +22,34 @@ jobs:
 
       - name: Install MetalLB
         run: |
-          kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.7/config/manifests/metallb-native.yaml
-          kubectl wait --namespace metallb-system \
-                      --for=condition=ready pod \
-                      --selector=app=metallb \
-                      --timeout=90s
-
-          # Apply MetalLB config for automatic IP assignment
-          cat <<EOF | kubectl apply -f -
-          apiVersion: metallb.io/v1beta1
-          kind: IPAddressPool
-          metadata:
-            name: default
-            namespace: metallb-system
-          spec:
-            addresses:
-            - 192.168.1.240-192.168.1.250
-          ---
-          apiVersion: metallb.io/v1beta1
-          kind: BGPAdvertisement
-          metadata:
-            name: example
-            namespace: metallb-system
-          spec:
-            communities:
-            - no-export
-            ipAddressPools:
-            - default
-          EOF
+              kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.7/config/manifests/metallb-native.yaml
+              kubectl wait --namespace metallb-system \
+                          --for=condition=ready pod \
+                          --selector=app=metallb \
+                          --timeout=90s
+              
+              DOCKER_SUBNET=$(docker network inspect kind | jq -r '.[0].IPAM.Config[0].Subnet' | cut -d'/' -f1)
+              echo "Kind network subnet: $DOCKER_SUBNET"
+              
+              SUBNET_PREFIX=$(echo $DOCKER_SUBNET | cut -d'.' -f1-2)
+              echo "Subnet prefix: $SUBNET_PREFIX"
+            
+              cat <<EOF | kubectl apply -f -
+              apiVersion: metallb.io/v1beta1
+              kind: IPAddressPool
+              metadata:
+                name: default
+                namespace: metallb-system
+              spec:
+                addresses:
+                - ${SUBNET_PREFIX}.255.200-${SUBNET_PREFIX}.255.250
+              ---
+              apiVersion: metallb.io/v1beta1
+              kind: L2Advertisement
+              metadata:
+                name: default
+                namespace: metallb-system
+              EOF
 
       - name: Apply manifests
         run: |
@@ -67,9 +67,19 @@ jobs:
           else
             echo "Service has external IP: $EXTERNAL_IP"
             echo "SERVICE_URL=http://${EXTERNAL_IP}:5000" >> $GITHUB_ENV
+
+            echo "Testing connectivity to $EXTERNAL_IP:5000"
+            timeout 10s curl -v $EXTERNAL_IP:5000 || echo "Direct connection failed, checking network"
+            
+            # Route to the external IP through Kind network
+            sudo ip route add ${EXTERNAL_IP}/32 via $(docker network inspect kind -f '{{range .IPAM.Config}}{{.Gateway}}{{end}}')
+            
+            echo "Added route to $EXTERNAL_IP through Kind network gateway"
+            echo "Testing connectivity to $EXTERNAL_IP:5000 again after route addition"
+            curl -v $EXTERNAL_IP:5000 || echo "Connection still failed"
+
             kubectl get svc -A -owide
             kubectl describe svc demo-http-server-service
-            sleep 10
           fi
 
       - name: Send GET request and check response
