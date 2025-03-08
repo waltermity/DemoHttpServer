@@ -1,4 +1,4 @@
-name: End-to-End Test Containerized
+name: End-to-End Test Containerized MetalLB
 
 on: [push, pull_request]
 
@@ -27,27 +27,27 @@ jobs:
                       --for=condition=ready pod \
                       --selector=app=metallb \
                       --timeout=90s
-          
-          # Get Kind network subnet
-          DOCKER_SUBNET=$(docker network inspect kind | jq '.[0].IPAM.Config[0].Subnet' -r)
-          SUBNET_PREFIX=$(echo $DOCKER_SUBNET | sed 's/\([0-9]*\.[0-9]*\.\).*/\1/')
-          
-          # Apply MetalLB config
+
+          # Apply MetalLB config for automatic IP assignment
           cat <<EOF | kubectl apply -f -
+          apiVersion: metallb.io/v1beta1
+          kind: BGPAdvertisement
+          metadata:
+            name: example
+            namespace: metallb-system
+          spec:
+            communities:
+            - no-export
+          ipAddressPools:
+          - default
+          ---
           apiVersion: metallb.io/v1beta1
           kind: IPAddressPool
           metadata:
-            name: kind-pool
+            name: default
             namespace: metallb-system
           spec:
-            addresses:
-            - ${SUBNET_PREFIX}255.200-${SUBNET_PREFIX}255.250
-          ---
-          apiVersion: metallb.io/v1beta1
-          kind: L2Advertisement
-          metadata:
-            name: empty
-            namespace: metallb-system
+            autoAssign: true
           EOF
 
       - name: Apply manifests
@@ -60,7 +60,7 @@ jobs:
           echo "Waiting for external IP (timeout: 120s)..."
           timeout 120s bash -c 'until kubectl get service demo-http-server-service -o jsonpath="{.status.loadBalancer.ingress[0].ip}" | grep -v "null"; do sleep 2; done' || true
           EXTERNAL_IP=$(kubectl get service demo-http-server-service -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
-          
+
           if [ -z "$EXTERNAL_IP" ]; then
             echo "Failed to get external IP, test will likely fail"
           else
@@ -72,7 +72,7 @@ jobs:
         run: |
           response=$(curl -s ${{ env.SERVICE_URL }})
           echo "Response: $response"
-          
+
           if [ "$response" == "Hello there!" ]; then
             echo "✅ The value received is correct"
           else
