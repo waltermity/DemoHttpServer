@@ -31,6 +31,15 @@ jobs:
           # Apply MetalLB config for automatic IP assignment
           cat <<EOF | kubectl apply -f -
           apiVersion: metallb.io/v1beta1
+          kind: IPAddressPool
+          metadata:
+            name: default
+            namespace: metallb-system
+          spec:
+            addresses:
+            - 192.168.1.240-192.168.1.250
+          ---
+          apiVersion: metallb.io/v1beta1
           kind: BGPAdvertisement
           metadata:
             name: example
@@ -38,16 +47,8 @@ jobs:
           spec:
             communities:
             - no-export
-          ipAddressPools:
-          - default
-          ---
-          apiVersion: metallb.io/v1beta1
-          kind: IPAddressPool
-          metadata:
-            name: default
-            namespace: metallb-system
-          spec:
-            autoAssign: true
+            ipAddressPools:
+            - default
           EOF
 
       - name: Apply manifests
