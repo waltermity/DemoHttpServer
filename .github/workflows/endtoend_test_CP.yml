@@ -1,4 +1,4 @@
-name: End-to-End Test Containerized MetalLB
+name: End-to-End Test Containerized
 
 on: [push, pull_request]
 
@@ -9,7 +9,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
+    
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
@@ -20,37 +20,19 @@ jobs:
         with:
             config: kind-config.yaml
 
-      - name: Install MetalLB
+      - name: Install cloud-provider-kind
         run: |
-              kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.7/config/manifests/metallb-native.yaml
-              kubectl wait --namespace metallb-system \
-                          --for=condition=ready pod \
-                          --selector=app=metallb \
-                          --timeout=90s
-              
-              # Use a hardcoded IPv4 range that should be safe to use
-              cat <<EOF | kubectl apply -f -
-              apiVersion: metallb.io/v1beta1
-              kind: IPAddressPool
-              metadata:
-                name: default
-                namespace: metallb-system
-              spec:
-                addresses:
-                - 172.18.255.200-172.18.255.250
-              ---
-              apiVersion: metallb.io/v1beta1
-              kind: L2Advertisement
-              metadata:
-                name: default
-                namespace: metallb-system
-              EOF
+            go install sigs.k8s.io/cloud-provider-kind@latest
+            echo "${HOME}/go/bin" >> $GITHUB_PATH
+
+      - name: Start Cloud Provider
+        run: |
+          cloud-provider-kind &
 
       - name: Apply manifests
         run: |
             kubectl apply -f deployment.yaml
             kubectl apply -f service.yaml
-            kubectl wait --for=condition=ready pod --selector=app=demo-http-server --timeout=60s
 
       - name: Wait for LoadBalancer to get external IP
         run: |
