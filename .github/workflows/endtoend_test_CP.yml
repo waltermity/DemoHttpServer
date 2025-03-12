@@ -69,8 +69,7 @@ jobs:
 
       - name: Send GET request and check response
         run: |
-          kubectl get svc -o wide
-          response=$(curl -s ${{ env.SERVICE_URL }})
+          response=$(curl -v ${{ env.SERVICE_URL }})
           echo "Response: $response"
 
           if [ "$response" == "Hello there!" ]; then
