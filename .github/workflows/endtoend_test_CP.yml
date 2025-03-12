@@ -64,7 +64,7 @@ jobs:
             echo "Failed to get external IP, test will likely fail"
           else
             echo "Service has external IP: $EXTERNAL_IP"
-            echo "SERVICE_URL=http://${EXTERNAL_IP}:5000" >> $GITHUB_ENV
+            echo "SERVICE_URL=https://${EXTERNAL_IP}:5000" >> $GITHUB_ENV
           fi
 
       - name: Send GET request and check response
