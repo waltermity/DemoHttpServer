@@ -9,6 +9,22 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: waltermity/demohttpserver:latest
     
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -20,10 +36,14 @@ jobs:
         with:
             config: kind-config.yaml
 
-      - name: Install cloud-provider-kind
+      - name: Set up cloud-provider-kind
         run: |
-            go install sigs.k8s.io/cloud-provider-kind@latest
-            echo "${HOME}/go/bin" >> $GITHUB_PATH
+            wget -O cloud-provider-kind.tar.gz https://github.com/kubernetes-sigs/cloud-provider-kind/releases/download/v0.6.0/cloud-provider-kind_0.6.0_linux_amd64.tar.gz
+            mkdir -p cloud-provider-kind-tmp
+            tar -xzf cloud-provider-kind.tar.gz -C cloud-provider-kind-tmp
+            chmod +x cloud-provider-kind-tmp/cloud-provider-kind
+            sudo mv cloud-provider-kind-tmp/cloud-provider-kind /usr/local/bin/
+            rm -rf cloud-provider-kind-tmp cloud-provider-kind.tar.gz
 
       - name: Start Cloud Provider
         run: |
