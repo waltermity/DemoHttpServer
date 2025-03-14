@@ -32,18 +32,19 @@ jobs:
           go-version: '1.21'
 
       - name: Create k8s Kind Cluster
-        uses: helm/kind-action@v1
+        uses: waltermity/kind-action@cloud_provider
         with:
             config: kind-config.yaml
+            enable_cloud_provider: true
 
-      - name: Set up cloud-provider-kind
-        run: |
-            wget -O cloud-provider-kind.tar.gz https://github.com/kubernetes-sigs/cloud-provider-kind/releases/download/v0.6.0/cloud-provider-kind_0.6.0_linux_amd64.tar.gz
-            mkdir -p cloud-provider-kind-tmp
-            tar -xzf cloud-provider-kind.tar.gz -C cloud-provider-kind-tmp
-            chmod +x cloud-provider-kind-tmp/cloud-provider-kind
-            sudo mv cloud-provider-kind-tmp/cloud-provider-kind /usr/local/bin/
-            rm -rf cloud-provider-kind-tmp cloud-provider-kind.tar.gz
+      #- name: Set up cloud-provider-kind
+       # run: |
+        #    wget -O cloud-provider-kind.tar.gz https://github.com/kubernetes-sigs/cloud-provider-kind/releases/download/v0.6.0/cloud-provider-kind_0.6.0_linux_amd64.tar.gz
+         #   mkdir -p cloud-provider-kind-tmp
+          #  tar -xzf cloud-provider-kind.tar.gz -C cloud-provider-kind-tmp
+           # chmod +x cloud-provider-kind-tmp/cloud-provider-kind
+            #sudo mv cloud-provider-kind-tmp/cloud-provider-kind /usr/local/bin/
+            #rm -rf cloud-provider-kind-tmp cloud-provider-kind.tar.gz
 
       - name: Start Cloud Provider
         run: |
