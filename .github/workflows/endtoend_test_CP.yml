@@ -46,9 +46,9 @@ jobs:
             #sudo mv cloud-provider-kind-tmp/cloud-provider-kind /usr/local/bin/
             #rm -rf cloud-provider-kind-tmp cloud-provider-kind.tar.gz
 
-      - name: Start Cloud Provider
-        run: |
-          cloud-provider-kind &
+      #- name: Start Cloud Provider
+       # run: |
+        #  cloud-provider-kind &
 
       - name: Apply manifests
         run: |
