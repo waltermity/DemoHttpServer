@@ -32,10 +32,10 @@ jobs:
           go-version: '1.21'
 
       - name: Create k8s Kind Cluster
-        uses: waltermity/kind-action@cloud_provider
+        uses: waltermity/kind-action@cloudprovider_binary
         with:
             config: kind-config.yaml
-            enable_cloud_provider: true
+            cloud_provider: true
 
       - name: Apply manifests
         run: |
