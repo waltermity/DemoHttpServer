@@ -1,4 +1,4 @@
-name: End-to-End Test Containerized
+name: End-to-End Test Build
 
 on: [push, pull_request]
 
