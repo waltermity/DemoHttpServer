@@ -1,4 +1,4 @@
-name: End-to-End Test Containerized
+name: End-to-End Test Binary
 
 on: [push, pull_request]
 
@@ -25,17 +25,24 @@ jobs:
           context: .
           push: true
           tags: waltermity/demohttpserver:latest
-    
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.21'
 
       - name: Create k8s Kind Cluster
-        uses: waltermity/kind-action@cloudprovider_binary
+        uses: helm/kind-action@v1
         with:
             config: kind-config.yaml
-            cloud_provider: true
+
+      - name: Set up cloud-provider-kind
+        run: |
+            wget -O cloud-provider-kind.tar.gz https://github.com/kubernetes-sigs/cloud-provider-kind/releases/download/v0.6.0/cloud-provider-kind_0.6.0_linux_amd64.tar.gz
+            mkdir -p cloud-provider-kind-tmp
+            tar -xzf cloud-provider-kind.tar.gz -C cloud-provider-kind-tmp
+            chmod +x cloud-provider-kind-tmp/cloud-provider-kind
+            sudo mv cloud-provider-kind-tmp/cloud-provider-kind /usr/local/bin/
+            rm -rf cloud-provider-kind-tmp cloud-provider-kind.tar.gz
+
+      - name: Start Cloud Provider
+        run: |
+          cloud-provider-kind &
 
       - name: Apply manifests
         run: |
@@ -47,19 +54,17 @@ jobs:
           echo "Waiting for external IP (timeout: 120s)..."
           timeout 120s bash -c 'until kubectl get service demo-http-server-service -o jsonpath="{.status.loadBalancer.ingress[0].ip}" | grep -v "null"; do sleep 2; done' || true
           EXTERNAL_IP=$(kubectl get service demo-http-server-service -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
-
           if [ -z "$EXTERNAL_IP" ]; then
             echo "Failed to get external IP, test will likely fail"
           else
             echo "Service has external IP: $EXTERNAL_IP"
             echo "SERVICE_URL=http://${EXTERNAL_IP}:5000" >> $GITHUB_ENV
           fi
-
+          
       - name: Send GET request and check response
         run: |
           response=$(curl -v ${{ env.SERVICE_URL }})
           echo "Response: $response"
-
           if [ "$response" == "Hello there!" ]; then
             echo "✅ The value received is correct"
           else

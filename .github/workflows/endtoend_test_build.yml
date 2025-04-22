@@ -1,0 +1,60 @@
+name: End-to-End Test Containerized
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+    
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Create k8s Kind Cluster
+        uses: helm/kind-action@v1
+        with:
+            config: kind-config.yaml
+
+      - name: Install cloud-provider-kind
+        run: |
+            go install sigs.k8s.io/cloud-provider-kind@latest
+            echo "${HOME}/go/bin" >> $GITHUB_PATH
+
+      - name: Start Cloud Provider
+        run: |
+          cloud-provider-kind &
+
+      - name: Apply manifests
+        run: |
+            kubectl apply -f deployment.yaml
+            kubectl apply -f service.yaml
+
+      - name: Wait for LoadBalancer to get external IP
+        run: |
+          echo "Waiting for external IP (timeout: 120s)..."
+          timeout 120s bash -c 'until kubectl get service demo-http-server-service -o jsonpath="{.status.loadBalancer.ingress[0].ip}" | grep -v "null"; do sleep 2; done' || true
+          EXTERNAL_IP=$(kubectl get service demo-http-server-service -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
+          
+          if [ -z "$EXTERNAL_IP" ]; then
+            echo "Failed to get external IP, test will likely fail"
+          else
+            echo "Service has external IP: $EXTERNAL_IP"
+            echo "SERVICE_URL=http://${EXTERNAL_IP}:5000" >> $GITHUB_ENV
+          fi
+
+      - name: Send GET request and check response
+        run: |
+          response=$(curl -s ${{ env.SERVICE_URL }})
+          echo "Response: $response"
+
+          if [ "$response" == "Hello there!" ]; then
+            echo "✅ The value received is correct"
+          else
+            echo "❌ Received value is incorrect"
+            exit 1
+          fi
