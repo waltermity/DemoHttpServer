@@ -32,7 +32,7 @@ jobs:
           go-version: '1.21'
 
       - name: Create k8s Kind Cluster
-        uses: waltermity/kind-action@cloudprovider
+        uses: waltermity/kind-action@test_sha256
         with:
             config: kind-config.yaml
             cloud_provider: true
